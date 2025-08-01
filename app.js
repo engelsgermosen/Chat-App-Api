@@ -48,7 +48,7 @@ const server = app.listen(app.get("port"), () => {
 const io = new Server(server, {
   path: "/socket.io",
   cors: {
-    origin: "http://localhost:5173",
+    origin: "https://chat-app-client-rust.vercel.app",
     methods: ["GET", "POST"],
     credentials: true,
   },
