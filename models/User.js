@@ -62,7 +62,6 @@ const UserSchema = new Schema(
 );
 
 // Índices para mejorar el rendimiento de las consultas
-UserSchema.index({ email: 1 });
 UserSchema.index({ isActive: 1 });
 
 // Método para obtener información pública del usuario (sin contraseña)
