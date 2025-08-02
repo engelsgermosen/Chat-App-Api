@@ -2,6 +2,9 @@ import User from "../models/User.js";
 import FriendShip from "../models/FriendShip.js";
 import mongoose from "mongoose";
 import { instance } from "../socket.js";
+import fs from "fs";
+import path from "path";
+import { projectRoot } from "../utils/helpers/path.js";
 
 export const GetAll = async (req, res) => {
   const response = await User.find();
@@ -113,5 +116,66 @@ export const DeleteFriends = async (req, res) => {
       success: false,
       message: "Error interno al obtener amigos",
     });
+  }
+};
+
+export const getProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select("name email avatar").lean();
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Usuario no encontrado" });
+    }
+    return res.json({ success: true, data: user });
+  } catch (err) {
+    console.error("Error en getProfile:", err);
+    return res.status(500).json({ success: false, message: "Error interno" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, password, avatarImg } = req.body;
+    const updates = { name };
+
+    // Si envían nueva password, la hasheamos
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updates.password = await bcrypt.hash(password, salt);
+    }
+
+    let img = "";
+    const oldImage = avatarImg;
+    console.log(oldImage);
+    // Si subieron avatar, multer habrá puesto req.file
+    if (req.file) {
+      const mImage = req.file;
+      const avatar = "/" + path.relative("public", mImage.path);
+      const pathDelete = path.join(projectRoot, "public", oldImage);
+      await fs.unlink(pathDelete, (err) => {
+        if (err) console.log("Error deleting a image: " + err.message);
+      });
+      updates.avatar = avatar;
+    } else {
+      updates.avatar = oldImage;
+    }
+
+    const user = await User.findByIdAndUpdate(id, updates, { new: true })
+      .select("name email avatar")
+      .lean();
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Usuario no encontrado" });
+    }
+
+    return res.json({ success: true, data: user });
+  } catch (err) {
+    console.error("Error en updateProfile:", err);
+    return res.status(500).json({ success: false, message: "Error interno" });
   }
 };
